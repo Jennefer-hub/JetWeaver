@@ -15,12 +15,12 @@ JetWeaver is an edge-native cryptographic key and passphrase derivation engine e
 
 ### 1. Installation
 ```bash
-git clone [https://github.com/YOUR_GITHUB_USERNAME/jetweaver.git](https://github.com/YOUR_GITHUB_USERNAME/jetweaver.git)
-cd jetweaver
+git clone [https://github.com/Jennefer-hub/JetWeaver.git](https://github.com/Jennefer-hub/JetWeaver.git)
+cd JetWeaver
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python3 setup_wordlist.py
+python3 wordlist.py
 ```
 
 ### 2. Execution
