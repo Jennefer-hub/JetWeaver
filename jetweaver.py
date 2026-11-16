@@ -6,7 +6,7 @@ import hashlib
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
 
-# --- IMPORT MODULAR SUBSYSTEMS ---
+# --- IMPORT MODULAR SUBSYSTEMS (MATCHING ACTUAL REPO FILENAMES) ---
 from secure import SecureStoryReader
 from time_token import parse_time_token, format_human_duration
 from hardening_quirk import (
@@ -19,6 +19,7 @@ from hardening_quirk import (
 from diceware import DicewareEngine
 from export import secure_ephemeral_export
 
+
 class InterruptionHandler:
     """Catches SIGINT (Ctrl+C) and ignores SIGPIPE for safe background tmux runs."""
     def __init__(self):
@@ -30,6 +31,7 @@ class InterruptionHandler:
     def _handle_sigint(self, signum, frame):
         self.interrupted = True
 
+
 def safe_write(text: str) -> None:
     """Safely writes to stdout without crashing if tmux/SSH detaches."""
     try:
@@ -38,27 +40,43 @@ def safe_write(text: str) -> None:
     except (IOError, BrokenPipeError):
         pass
 
+
 def process_story(story_bytes: bytearray) -> bytes:
-    """Extracts semantic features from raw story bytes and returns a 512-bit digest."""
-    story_str = story_bytes.decode("utf-8", errors="ignore").strip()
-    char_len = len(story_str)
-    words = story_str.split()
-    word_count = len(words)
-    
-    word_lens = [len(w) for w in words]
-    avg_len = sum(word_lens) / max(word_count, 1)
+    """
+    Computes a 512-bit semantic digest directly over the mutable bytearray
+    without decoding the full secret into an immutable Python str.
+    """
+    byte_len = len(story_bytes)
+    in_word = False
+    word_count = 0
+    non_space_bytes = 0
 
-    preimage = f"STORY_LEN:{char_len}|WORDS:{word_count}|AVG_LEN:{avg_len:.3f}|BODY:{story_str}".encode("utf-8")
-    digest = hashlib.sha512(preimage).digest()
-    
-    del story_str, words, preimage
-    return digest
+    for b in story_bytes:
+        if b in (32, 9, 10, 13):  # space, \t, \n, \r
+            in_word = False
+        else:
+            non_space_bytes += 1
+            if not in_word:
+                word_count += 1
+                in_word = True
 
-def synthesize_keys(hardware_salt: bytes, story_digest: bytes) -> dict:
-    """Derives multi-tier credentials via RFC 5869 HKDF-SHA256."""
+    avg_len = non_space_bytes / max(word_count, 1)
+    header = f"STORY_LEN:{byte_len}|WORDS:{word_count}|AVG_LEN:{avg_len:.3f}|BODY:".encode("utf-8")
+
+    hasher = hashlib.sha512()
+    hasher.update(header)
+    hasher.update(story_bytes)
+    return hasher.digest()
+
+
+def synthesize_keys(hardware_salt: bytes, story_digest: bytes) -> tuple[dict, bytes]:
+    """
+    Derives multi-tier credentials and a 32-byte composite Diceware seed
+    via RFC 5869 HKDF-SHA256 (weaving hardware salt + semantic story digest).
+    """
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
-        length=96,
+        length=128,
         salt=hardware_salt,
         info=b"JetWeaver-Master-Key-Expansion-v2",
     )
@@ -74,14 +92,19 @@ def synthesize_keys(hardware_salt: bytes, story_digest: bytes) -> dict:
     std_chars.extend(["!", str(derived[47] % 10)])
     std_token = "".join(std_chars)
 
-    # 3. Raw Hex Key
+    # 3. Raw Hex Key (Bytes 48..80)
     hex_key = derived[48:80].hex()
 
-    return {
+    # 4. Dedicated 32-byte HKDF seed (Bytes 80..112) combining story + hardware for Diceware
+    diceware_seed = derived[80:112]
+
+    keys = {
         "Master Vault Key (32-char)"   : master_key,
         "Standard Token (16-char)"     : std_token,
         "Raw Entropy Salt (Hex)"       : hex_key,
     }
+    return keys, diceware_seed
+
 
 def main():
     print("=" * 65)
@@ -101,7 +124,7 @@ def main():
     # --- STAGE 2: SECURE STORY INGESTION ---
     input("\n[Press Enter to open Secure Terminal for Memory/Story Input] > ")
     story_buffer = SecureStoryReader.read_story()
-    
+
     if not len(story_buffer):
         print("[!] Error: Story buffer cannot be empty.")
         sys.exit(1)
@@ -127,7 +150,7 @@ def main():
             safe_write(" [!] OBSERVATION WINDOW INTERRUPTED BY USER (SIGINT)\n")
             safe_write("!" * 65 + "\n")
             safe_write(f"[*] Epochs Collected: {accumulator.sample_count}\n")
-            
+
             if accumulator.sample_count < 10:
                 safe_write("[-] Insufficient entropy (< 10 samples). Aborting.\n")
                 sys.exit(130)
@@ -192,10 +215,10 @@ def main():
 
     # --- STAGE 4: SYNTHESIS & DICEWARE GENERATION ---
     print("\n[+] Synthesizing cryptographic keys and passphrases...")
-    base_keys = synthesize_keys(hardware_salt, story_digest)
-    
+    base_keys, diceware_seed = synthesize_keys(hardware_salt, story_digest)
+
     diceware = DicewareEngine()
-    passphrases = diceware.generate_passphrases(hardware_salt)
+    passphrases = diceware.generate_passphrases(diceware_seed)
 
     all_credentials = {
         **base_keys,
@@ -219,6 +242,7 @@ def main():
         secure_ephemeral_export(all_credentials)
     else:
         print("[+] Skipping export. Secure memory cleared.")
+
 
 if __name__ == "__main__":
     main()

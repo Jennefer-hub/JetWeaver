@@ -7,9 +7,9 @@ JetWeaver is an edge-native cryptographic key and passphrase derivation engine e
 * **Terminal Screen & Memory Isolation (`secure.py`):** Ingests sensitive inputs inside an isolated ANSI alternate screen buffer (`\033[?1049h`), bypassing process arguments (`sys.argv`) and shell scrollback history. Features interactive 2D cursor navigation, `Alt+Enter` / `Ctrl+N` stanza breaks, and instant masking with a `Ctrl+R` peek toggle, followed by in-place RAM zeroization (`0x00`).
 * **Active Silicon Perturbation (`hardening_quirk.py`):** Prevents physical entropy collapse on idle systems by running logistic map churn, dynamic sleep cadence jitter ($40\text{ ms} \pm 6\text{ ms}$), unbuffered `/sys` thermal sampling, and volatile `/proc/interrupts` harvesting mixed with continuous kernel CSPRNG (`os.urandom`) injection.
 * **Resilient Signal & Fault Triage (`handler.py`):** Decouples observation lifetimes from active SSH pseudo-terminals. Fully compatible with persistent `tmux` sessions, suppresses detached `SIGPIPE` crashes, and catches `SIGINT` (`Ctrl+C`) for interactive early synthesis or secure zeroized aborts.
-* **Compound Time Parser (`time_parser.py`):** Ingests human-readable observation tokens (`sc`, `mt`, `hr`, `dy`, `wk`) or compound strings (`1hr 30mt 15sc`) into exact integer deadlines.
+* **Compound Time Parser (`time_token.py`):** Ingests human-readable observation tokens (`sc`, `mt`, `hr`, `dy`, `wk`) or compound strings (`1hr 30mt 15sc`) into exact integer deadlines.
 * **Passphrase Synthesizer (`diceware.py`):** Compiles an offline EFF Large Wordlist cache (7,776 words) with rejection sampling to eliminate modulo bias, deriving 5-word, 6-word, and hybrid passphrases alongside 32-character master vault keys.
-* **Ephemeral Zeroized Exporter (`exporter.py`):** Provides temporary credential exports locked to `chmod 600` permissions that are cryptographically shredded with null bytes (`0x00`) before file unlinking.
+* **Ephemeral Zeroized Exporter (`export.py`):** Provides temporary credential exports locked to `chmod 600` permissions that are cryptographically shredded with null bytes (`0x00`) before file unlinking.
 
 ## Setup & Usage
 
