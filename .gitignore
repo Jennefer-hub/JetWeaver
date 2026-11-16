@@ -1,0 +1,18 @@
+# Virtual environment
+venv/
+env/
+
+# Python cache & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# JetWeaver ephemeral and binary artifacts
+eff_words.bin
+vault_export.txt
+*.log
+
+# Editor & OS metadata
+.vscode/
+.idea/
+.DS_Store
