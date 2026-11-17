@@ -1,18 +1,15 @@
-# Virtual environment
-venv/
-env/
+# Cargo build artifacts
+target/
+**/*.rs.bk
+*.pdb
 
-# Python cache & compiled bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# JetWeaver ephemeral and binary artifacts
-eff_words.bin
+# Ephemeral export files
 vault_export.txt
-*.log
+vault_export_test.txt
+*.tmp
 
-# Editor & OS metadata
+# System & Editor noise
 .vscode/
 .idea/
 .DS_Store
+*.log

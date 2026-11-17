@@ -1,0 +1,31 @@
+[package]
+name = "jetweaver-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Cryptographic primitives (RFC 5869 HKDF & SHA-2)
+sha2 = "0.10"
+hkdf = "0.12"
+
+# Memory wiping with compiler fences
+zeroize = { version = "1.8", features = ["derive"] }
+
+# Direct Linux getrandom(2) syscall interface
+getrandom = "0.2"
+
+# Terminal raw mode, alternate screen buffer, and 2D input events
+crossterm = "0.28"
+
+# POSIX signal hooks (SIGINT early triage & SIGPIPE suppression)
+signal-hook = "0.3"
+
+# Compound time token parsing
+regex = "1.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
